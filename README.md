@@ -348,7 +348,7 @@ The BigSmall mode multi-tasks pulse (PPG regression), respiration (regression), 
   <img src="./figures/bigsmall_ex1.gif" alt="Example Multi-Task Output From BigSmall." />
 </p>
 
-# :red_book: Testing on The Arbitrary Videos with Pre-trained Models
+# :notebook_with_decorative_cover: Testing on The Arbitrary Videos with Pre-trained Models
 Now, this repository supports inference on arbitrary videos with pre-trained supervised models. 
 
 * STEP 1: Put all your videos in `./test_data/videos`
