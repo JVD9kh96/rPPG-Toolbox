@@ -348,6 +348,23 @@ The BigSmall mode multi-tasks pulse (PPG regression), respiration (regression), 
   <img src="./figures/bigsmall_ex1.gif" alt="Example Multi-Task Output From BigSmall." />
 </p>
 
+# :red_book: Testing on The Arbitrary Videos with Pre-trained Models
+Now, this repository supports inference on arbitrary videos with pre-trained supervised models. 
+
+* STEP 1: Put all your videos in `./test_data/videos`
+
+* STEP 2: Choose one of the config files from `./configs/infer_configs`. Please note that currently, only supervised models are supported for this customized inference mode.
+
+* STEP 3: Modify the config file:
+  *  DO_PREPROCESS: True
+  *  DATA_PATH: "./test_data"
+  *  CACHED_PATH: "./processed" 
+  *  USE_CUSTOM_INFERENCE_MODE: True
+
+* STEP 4: Run the command: `python inference.py --config_file ./configs/infer_configs/PURE_UBFC-rPPG_TSCAN_BASIC.yaml` (replace the config path with your desired config file)
+
+
+
 # :scroll: Citation
 If you find our [paper](https://arxiv.org/abs/2210.00716) or this toolbox useful for your research, please cite our work.
 
