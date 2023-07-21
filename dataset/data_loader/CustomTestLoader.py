@@ -1,5 +1,4 @@
-"""The dataloader for Custom data loader dataset.
-
+"""The dataloader for Custom data loader.
 """
 import glob
 import os
@@ -34,14 +33,7 @@ class CustomTestLoader(BaseLoader):
         super().__init__(name, data_path, config_data)
 
     def get_raw_data(self, data_path):
-        """Returns data directories under the path(For UBFC-rPPG dataset)."""
-        # data_dirs = glob.glob(data_path + os.sep + "subject*")
-        # if not data_dirs:
-        #     raise ValueError(self.dataset_name + " data paths empty!")
-        # dirs = [{"index": re.search(
-        #     'subject(\d+)', data_dir).group(0), "path": data_dir} for data_dir in data_dirs]
-        # return dirs
-
+        """Returns data directories under the path(For Custom videos)."""
         data_dirs = glob.glob(data_path + os.sep +  'videos' + os.sep + '*')
         if not data_dirs:
             raise ValueError(self.dataset_name + " data paths empty!")
