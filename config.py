@@ -303,6 +303,7 @@ _C.MODEL.BIGSMALL.FRAME_DEPTH = 3
 # Inference settings
 # -----------------------------------------------------------------------------
 _C.INFERENCE = CN()
+_C.INFERENCE.USE_CUSTOM_INFERENCE_MODE=False
 _C.INFERENCE.BATCH_SIZE = 4
 _C.INFERENCE.EVALUATION_METHOD = 'FFT'
 _C.INFERENCE.EVALUATION_WINDOW = CN()

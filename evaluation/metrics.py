@@ -3,7 +3,7 @@ import pandas as pd
 import torch
 from evaluation.post_process import *
 from tqdm import tqdm
-
+import os
 
 def read_label(dataset):
     """Read manually corrected labels."""
@@ -44,15 +44,24 @@ def _reform_data_from_dict(data, flatten=True):
 
 def calculate_metrics(predictions, labels, config):
     """Calculate rPPG Metrics (MAE, RMSE, MAPE, Pearson Coef.)."""
+    if config.INFERENCE.USE_CUSTOM_INFERENCE_MODE:
+        path_to_save = os.path.join(config.TEST.DATA.DATA_PATH, 'rPPG')
+        os.makedirs(path_to_save, exist_ok=True)
+        index_specific_predict_hr  = list()
+        index_specific_gt_hr  = list()
+        index_specific_SNR  = list()
+        
+
     predict_hr_fft_all = list()
     gt_hr_fft_all = list()
     predict_hr_peak_all = list()
     gt_hr_peak_all = list()
     SNR_all = list()
+    
+
     for index in tqdm(predictions.keys(), ncols=80):
         prediction = _reform_data_from_dict(predictions[index])
         label = _reform_data_from_dict(labels[index])
-
         video_frame_size = prediction.shape[0]
         if config.INFERENCE.EVALUATION_WINDOW.USE_SMALLER_WINDOW:
             window_frame_size = config.INFERENCE.EVALUATION_WINDOW.WINDOW_SIZE * config.TEST.DATA.FS
@@ -83,15 +92,41 @@ def calculate_metrics(predictions, labels, config):
                 gt_hr_peak_all.append(gt_hr_peak)
                 predict_hr_peak_all.append(pred_hr_peak)
                 SNR_all.append(SNR)
+                if config.INFERENCE.USE_CUSTOM_INFERENCE_MODE:
+                    index_specific_predict_hr.append(pred_hr_peak)
+                    index_specific_gt_hr.append(gt_hr_peak)
+                    index_specific_SNR.append(SNR)
             elif config.INFERENCE.EVALUATION_METHOD == "FFT":
                 gt_hr_fft, pred_hr_fft, SNR = calculate_metric_per_video(
                     prediction, label, diff_flag=diff_flag_test, fs=config.TEST.DATA.FS, hr_method='FFT')
                 gt_hr_fft_all.append(gt_hr_fft)
                 predict_hr_fft_all.append(pred_hr_fft)
                 SNR_all.append(SNR)
+                if config.INFERENCE.USE_CUSTOM_INFERENCE_MODE:
+                    index_specific_predict_hr.append(pred_hr_fft)
+                    index_specific_gt_hr.append(gt_hr_fft)
+                    index_specific_SNR.append(SNR)
             else:
                 raise ValueError("Inference evaluation method name wrong!")
 
+        if config.INFERENCE.USE_CUSTOM_INFERENCE_MODE:
+            np.save(os.path.join(path_to_save,
+                                '{}_predicted_hr.npy'.format(index)),
+                                np.array(index_specific_predict_hr))
+            np.save(os.path.join(path_to_save,
+                                '{}_gt_hr.npy'.format(index)),
+                                np.array(index_specific_gt_hr))
+            np.save(os.path.join(path_to_save,
+                                '{}_SNR.npy'.format(index)),
+                                np.array(index_specific_SNR))
+            np.save(os.path.join(path_to_save,
+                                '{}_raw_prediction.npy'.format(index)),
+                                np.array(prediction))
+            index_specific_predict_hr = list()
+            index_specific_gt         = list() 
+            index_specific_SNR        = list()
+    
+  
     if config.INFERENCE.EVALUATION_METHOD == "FFT":
         gt_hr_fft_all = np.array(gt_hr_fft_all)
         predict_hr_fft_all = np.array(predict_hr_fft_all)

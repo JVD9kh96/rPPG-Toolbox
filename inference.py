@@ -136,7 +136,7 @@ if __name__ == "__main__":
     if config.TEST.DATA.DATASET and config.TEST.DATA.DATA_PATH:
         test_data = test_loader(
             name="test",
-            data_path='/content/test_data',
+            data_path='./test_data',
             config_data=config.TEST.DATA)
         data_loader_dict["test"] = DataLoader(
             dataset=test_data,
