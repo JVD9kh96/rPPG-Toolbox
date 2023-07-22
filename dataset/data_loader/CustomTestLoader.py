@@ -66,6 +66,10 @@ class CustomTestLoader(BaseLoader):
         VidObj = cv2.VideoCapture(video_file)
         VidObj.set(cv2.CAP_PROP_POS_MSEC, 0)
         success, frame = VidObj.read()
+        h, w = frame.shape[0:2]
+        while max(h, w)>720:
+            h = h // 2
+            w = w //2
         frames = list()
         while success:
             frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2RGB)
