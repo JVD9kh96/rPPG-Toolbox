@@ -71,9 +71,11 @@ class CustomTestLoader(BaseLoader):
             h = h // 2
             w = w //2
         frames = list()
+        
         while success:
             frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2RGB)
             frame = np.asarray(frame)
+            frame = cv2.resize(frame, (w, h))
             frames.append(frame)
             success, frame = VidObj.read()
         return np.asarray(frames)
