@@ -121,7 +121,9 @@ def calculate_metrics(predictions, labels, config):
                                 np.array(index_specific_SNR))
             np.save(os.path.join(path_to_save,
                                 '{}_raw_prediction.npy'.format(index)),
-                                np.array(prediction))
+                                np.array(process_raw_prediction(prediction, 
+                                                                diff_flag=diff_flag_test, 
+                                                                fs=config.TEST.DATA.FS)))
             index_specific_predict_hr = list()
             index_specific_gt         = list() 
             index_specific_SNR        = list()
