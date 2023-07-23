@@ -16,7 +16,7 @@ from unsupervised_methods.methods import POS_WANG
 from unsupervised_methods import utils
 import math
 from multiprocessing import Pool, Process, Value, Array, Manager
-
+from retinaface import RetinaFace 
 import cv2
 import numpy as np
 import pandas as pd
@@ -272,10 +272,15 @@ class BaseLoader(Dataset):
         Returns:
             face_box_coor(List[int]): coordinates of face bouding box.
         """
-
-        detector = cv2.CascadeClassifier(
-           './dataset/haarcascade_frontalface_default.xml')
-        face_zone = detector.detectMultiScale(frame)
+        if self.config_data.FACE_DETECTOR == 'Haar':
+            detector = cv2.CascadeClassifier(
+            './dataset/haarcascade_frontalface_default.xml')
+            face_zone = detector.detectMultiScale(frame)
+        elif self.config_data.FACE_DETECTOR == 'Retina': 
+            face_zone = self.retina_prediction(frame)
+        else: 
+            raise ValueError("The FACE_DETECTOR should be either Haar or Retina")
+            
         if len(face_zone) < 1:
             print("ERROR: No Face Detected")
             face_box_coor = [0, 0, frame.shape[0], frame.shape[1]]
@@ -586,3 +591,31 @@ class BaseLoader(Dataset):
             np.linspace(
                 1, input_signal.shape[0], target_length), np.linspace(
                 1, input_signal.shape[0], input_signal.shape[0]), input_signal)
+
+    @staticmethod 
+    def retina_prediction(image):
+        """This functions take an image array as input, 
+        then save it as a temporary file, so that the 
+        RetinaFace.detect_faces(image_path) could work 
+        on it.
+        image : numpy array 
+
+        output: a python list containing boxes for all 
+        faces in the image. The boxes have the same 
+        format as Haar cascade prediction. 
+        """
+        temp_filename = './temp_retina{}.jpg'\
+        .format([img for img in os.listdir('.') if\
+                'temp_retina' in img])
+
+        cv2.imwrite(temp_filename, image)
+        predictions = RetinaFace.detect_faces(temp_filename)
+        output = [] 
+        for key in predictions.keys():
+            #box: [ymin, xmin, ymax, xmax]
+            box = predictions[key]['facial_area']
+            #box: [ymin, xmin, height, width]
+            output.append([box[0], box[1], box[2]-box[0], box[3]-box[1]])
+
+        os.unlink(temp_filename)
+        return output 
