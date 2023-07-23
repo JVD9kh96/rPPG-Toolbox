@@ -96,6 +96,19 @@ def _calculate_SNR(pred_ppg_signal, hr_label, fs=30, low_pass=0.75, high_pass=2.
         SNR = 0
     return SNR
 
+def process_raw_prediction(predictions, fs=30, diff_flag=True, use_bandpass=True):
+    """This function pos-processes the network predictions to obtain rPPG signal"""
+    if diff_flag:  # if the predictions and labels are 1st derivative of PPG signal.
+        predictions = _detrend(np.cumsum(predictions), 100)
+    else:
+        predictions = _detrend(predictions, 100)
+    if use_bandpass:
+        # bandpass filter between [0.75, 2.5] Hz
+        # equals [45, 150] beats per min
+        [b, a] = butter(1, [0.75 / fs * 2, 2.5 / fs * 2], btype='bandpass')
+        predictions = scipy.signal.filtfilt(b, a, np.double(predictions))
+    return predictions 
+
 def calculate_metric_per_video(predictions, labels, fs=30, diff_flag=True, use_bandpass=True, hr_method='FFT'):
     """Calculate video-level HR and SNR"""
     if diff_flag:  # if the predictions and labels are 1st derivative of PPG signal.
