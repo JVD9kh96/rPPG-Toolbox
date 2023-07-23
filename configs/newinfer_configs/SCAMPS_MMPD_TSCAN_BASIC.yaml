@@ -14,6 +14,7 @@ TEST:
       HAIR_COVER: [1, 2] # 1 - True, 2 - False
       MAKEUP: [1, 2] # 1 - True, 2 - False
     FS: 30
+    FACE_DETECTOR: "Retina"
     DATASET: MMPD
     DO_PREPROCESS: True
     DATA_FORMAT: NDCHW

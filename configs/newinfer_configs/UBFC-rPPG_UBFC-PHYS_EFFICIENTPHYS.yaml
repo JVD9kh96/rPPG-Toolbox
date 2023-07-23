@@ -19,6 +19,7 @@ TEST:
       SELECT_TASKS: True
       TASK_LIST: ['T1', 'T2', 'T3']
     FS: 35
+    FACE_DETECTOR: "Retina"
     DATASET: UBFC-PHYS
     DO_PREPROCESS: True
     DATA_FORMAT: NDCHW

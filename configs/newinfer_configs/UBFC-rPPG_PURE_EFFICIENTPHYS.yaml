@@ -5,6 +5,7 @@ TEST:
   USE_LAST_EPOCH: True
   DATA:
     FS: 30
+    FACE_DETECTOR: "Retina"
     DATASET: PURE
     DO_PREPROCESS: True
     DATA_FORMAT: NDCHW
