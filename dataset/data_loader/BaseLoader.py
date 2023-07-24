@@ -376,6 +376,7 @@ class BaseLoader(Dataset):
         """
 
         if not os.path.exists(self.cached_path):
+            print('\n\n\nfunction: save >>>>>>>>> making directory at {} \n\n\n'.format(self.cached_path))
             os.makedirs(self.cached_path, exist_ok=True)
         count = 0
         for i in range(len(bvps_clips)):
@@ -401,6 +402,7 @@ class BaseLoader(Dataset):
             label_path_name_list: list of label path names
         """
         if not os.path.exists(self.cached_path):
+            print('\n\n\nfunction: save_multi_process >>>>>>>>> making directory at {} \n\n\n'.format(self.cached_path))
             os.makedirs(self.cached_path, exist_ok=True)
         count = 0
         input_path_name_list = []
