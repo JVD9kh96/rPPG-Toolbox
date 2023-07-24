@@ -180,9 +180,6 @@ class TscanTrainer(BaseTrainer):
                     labels[subj_index][sort_index] = labels_test[idx * self.chunk_len:(idx + 1) * self.chunk_len]
 
         print('')
-        print('\n\n\nCalculating Metrics!!!\n\n\n')
-        print('\n\n\nPrediction shape: {}\n\n\n'.format(predictions.shape))
-        
         calculate_metrics(predictions, labels, self.config)
 
     def save_model(self, index):
