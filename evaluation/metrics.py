@@ -62,6 +62,7 @@ def calculate_metrics(predictions, labels, config):
     for index in tqdm(predictions.keys(), ncols=80):
         prediction = _reform_data_from_dict(predictions[index])
         label = _reform_data_from_dict(labels[index])
+        print(f'prediction shape: {prediction.shape}, label shape: {label.shape}, index:{index}')
         video_frame_size = prediction.shape[0]
         if config.INFERENCE.EVALUATION_WINDOW.USE_SMALLER_WINDOW:
             window_frame_size = config.INFERENCE.EVALUATION_WINDOW.WINDOW_SIZE * config.TEST.DATA.FS
@@ -122,6 +123,11 @@ def calculate_metrics(predictions, labels, config):
             np.save(os.path.join(path_to_save,
                                 '{}_raw_prediction.npy'.format(index)),
                                 np.array(process_raw_prediction(prediction, 
+                                                                diff_flag=diff_flag_test, 
+                                                                fs=config.TEST.DATA.FS)))
+            np.save(os.path.join(path_to_save,
+                                '{}_raw_label.npy'.format(index)),
+                                np.array(process_raw_prediction(label, 
                                                                 diff_flag=diff_flag_test, 
                                                                 fs=config.TEST.DATA.FS)))
             index_specific_predict_hr = list()
