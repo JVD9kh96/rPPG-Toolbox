@@ -89,7 +89,7 @@ def calculate_metrics(predictions, labels, config):
             
             if config.INFERENCE.EVALUATION_METHOD == "peak detection":
                 gt_hr_peak, pred_hr_peak, SNR = calculate_metric_per_video(
-                    prediction, label, diff_flag=diff_flag_test, fs=config.TEST.DATA.FS, hr_method='Peak')
+                    pred_window, label_window, diff_flag=diff_flag_test, fs=config.TEST.DATA.FS, hr_method='Peak')
                 gt_hr_peak_all.append(gt_hr_peak)
                 predict_hr_peak_all.append(pred_hr_peak)
                 SNR_all.append(SNR)
@@ -99,7 +99,7 @@ def calculate_metrics(predictions, labels, config):
                     index_specific_SNR.append(SNR)
             elif config.INFERENCE.EVALUATION_METHOD == "FFT":
                 gt_hr_fft, pred_hr_fft, SNR = calculate_metric_per_video(
-                    prediction, label, diff_flag=diff_flag_test, fs=config.TEST.DATA.FS, hr_method='FFT')
+                    pred_window, label_window, diff_flag=diff_flag_test, fs=config.TEST.DATA.FS, hr_method='FFT')
                 gt_hr_fft_all.append(gt_hr_fft)
                 predict_hr_fft_all.append(pred_hr_fft)
                 SNR_all.append(SNR)
@@ -131,7 +131,7 @@ def calculate_metrics(predictions, labels, config):
                                                                 diff_flag=diff_flag_test, 
                                                                 fs=config.TEST.DATA.FS)))
             index_specific_predict_hr = list()
-            index_specific_gt         = list() 
+            index_specific_gt_hr      = list() 
             index_specific_SNR        = list()
     
   
