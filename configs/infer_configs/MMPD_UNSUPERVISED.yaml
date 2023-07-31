@@ -15,7 +15,7 @@ UNSUPERVISED:
       MAKEUP: [1, 2] # 1 - True, 2 - False
     FS: 30
     DATASET: MMPD
-    DO_PREPROCESS: False                  # if first time, should be true
+    DO_PREPROCESS: True                  # if first time, should be true
     DATA_FORMAT: NDHWC
     DATA_PATH:   "./mini_MMPD"          # Raw dataset path, need to be updated
     CACHED_PATH: "./processed_dataset"      # Processed dataset save path, need to be updated
