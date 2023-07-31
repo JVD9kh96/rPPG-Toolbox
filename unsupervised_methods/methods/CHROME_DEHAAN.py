@@ -4,9 +4,13 @@
 import numpy as np
 import math
 from scipy import signal
+from scipy.signal.windows import hann
 
 import unsupervised_methods.utils as utils
 
+def hanning(N):
+    n = np.arange(0, N)
+    return 0.5 - 0.5 * np.cos(2 * np.pi * n / (N - 1))
 
 def CHROME_DEHAAN(frames,FS):
     LPF = 0.7
@@ -40,7 +44,7 @@ def CHROME_DEHAAN(frames,FS):
 
         Alpha = np.std(Xf) / np.std(Yf)
         SWin = Xf-Alpha*Yf
-        SWin = np.multiply(SWin, signal.hanning(WinL))
+        SWin = np.multiply(SWin, hann(WinL))
 
         temp = SWin[:int(WinL//2)]
         S[WinS:WinM] = S[WinS:WinM] + SWin[:int(WinL//2)]
