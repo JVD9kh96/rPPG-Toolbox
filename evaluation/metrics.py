@@ -121,10 +121,14 @@ def calculate_metrics(predictions, labels, config):
                                 '{}_SNR.npy'.format(index)),
                                 np.array(index_specific_SNR))
             np.save(os.path.join(path_to_save,
-                                '{}_raw_prediction.npy'.format(index)),
+                                '{}_filtered_prediction.npy'.format(index)),
                                 np.array(process_raw_prediction(prediction, 
                                                                 diff_flag=diff_flag_test, 
                                                                 fs=config.TEST.DATA.FS)))
+            np.save(os.path.join(path_to_save,
+                                '{}_raw_prediction.npy'.format(index)),
+                                np.array(prediction))
+            
             np.save(os.path.join(path_to_save,
                                 '{}_raw_label.npy'.format(index)),
                                 np.array(process_raw_prediction(label, 
