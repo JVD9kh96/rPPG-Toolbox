@@ -64,12 +64,13 @@ class BaseLoader(Dataset):
         assert (config_data.END < 1 or config_data.END == 1)
         if config_data.DO_PREPROCESS:
             self.raw_data_dirs = self.get_raw_data(self.raw_data_path)
-            self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, color='rgb')
+            
             self.cached_path = self.cached_path + 'hsv'
             self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, color='hsv')
             self.cached_path = self.cached_path.replace('hsv', 'ycbcr')
             self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, color='ycbcr')
-
+            self.cached_path = self.cached_path.replace('ycbcr', '')
+            self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, color='rgb')
         else:
             if not os.path.exists(self.cached_path):
                 print('CACHED_PATH:', self.cached_path)
