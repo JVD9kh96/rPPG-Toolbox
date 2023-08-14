@@ -64,7 +64,12 @@ class BaseLoader(Dataset):
         assert (config_data.END < 1 or config_data.END == 1)
         if config_data.DO_PREPROCESS:
             self.raw_data_dirs = self.get_raw_data(self.raw_data_path)
-            self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END)
+            self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, color='rgb')
+            self.cached_path = self.cached_path + 'hsv'
+            self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, color='hsv')
+            self.cached_path = self.cached_path.replace('hsv', 'ycbcr')
+            self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, color='ycbcr')
+
         else:
             if not os.path.exists(self.cached_path):
                 print('CACHED_PATH:', self.cached_path)
@@ -193,7 +198,7 @@ class BaseLoader(Dataset):
 
         return np.array(env_norm_bvp) # return POS psuedo labels
     
-    def preprocess_dataset(self, data_dirs, config_preprocess, begin, end):
+    def preprocess_dataset(self, data_dirs, config_preprocess, begin, end, color='rgb'):
         """Parses and preprocesses all the raw data based on split.
 
         Args:
@@ -204,7 +209,7 @@ class BaseLoader(Dataset):
         """
         data_dirs_split = self.split_raw_data(data_dirs, begin, end)  # partition dataset 
         # send data directories to be processed
-        file_list_dict = self.multi_process_manager(data_dirs_split, config_preprocess) 
+        file_list_dict = self.multi_process_manager(data_dirs_split, config_preprocess, color=color) 
         self.build_file_list(file_list_dict)  # build file list
         self.load_preprocessed_data()  # load all data and corresponding labels (sorted for consistency)
         print("Total Number of raw files preprocessed:", len(data_dirs_split), end='\n\n')
@@ -416,7 +421,7 @@ class BaseLoader(Dataset):
             count += 1
         return input_path_name_list, label_path_name_list
 
-    def multi_process_manager(self, data_dirs, config_preprocess, multi_process_quota=8):
+    def multi_process_manager(self, data_dirs, config_preprocess, multi_process_quota=8, color='rgb'):
         """Allocate dataset preprocessing across multiple processes.
 
         Args:
@@ -444,7 +449,7 @@ class BaseLoader(Dataset):
                 if running_num < multi_process_quota:  # in case of too many processes
                     # send data to be preprocessing task
                     p = Process(target=self.preprocess_dataset_subprocess, 
-                                args=(data_dirs,config_preprocess, i, file_list_dict))
+                                args=(data_dirs,config_preprocess, i, file_list_dict, color))
                     p.start()
                     p_list.append(p)
                     running_num += 1

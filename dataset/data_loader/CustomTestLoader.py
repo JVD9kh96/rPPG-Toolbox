@@ -45,13 +45,13 @@ class CustomTestLoader(BaseLoader):
         """Does nothing here!"""
         return data_dirs
 
-    def preprocess_dataset_subprocess(self, data_dirs, config_preprocess, i, file_list_dict):
+    def preprocess_dataset_subprocess(self, data_dirs, config_preprocess, i, file_list_dict, color='rgb'):
         """ invoked by preprocess_dataset for multi_process."""
         filename = os.path.split(data_dirs[i]['path'])[-1]
         saved_filename = data_dirs[i]['index']
 
         # Read Frames
-        frames = self.read_video(data_dirs[i]['path'])
+        frames = self.read_video(data_dirs[i]['path'], color=color)
 
         # Read Labels, actually, it generates psuedo labels!
         bvps = self.generate_pos_psuedo_labels(frames, fs=self.config_data.FS)
@@ -61,7 +61,7 @@ class CustomTestLoader(BaseLoader):
         file_list_dict[i] = input_name_list
 
     @staticmethod
-    def read_video(video_file):
+    def read_video(video_file, color='rgb'):
         """Reads a video file, returns frames(T, H, W, 3) """
         VidObj = cv2.VideoCapture(video_file)
         VidObj.set(cv2.CAP_PROP_POS_MSEC, 0)
@@ -73,7 +73,12 @@ class CustomTestLoader(BaseLoader):
         frames = list()
         
         while success:
-            frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2RGB)
+            if color=='rgb':
+                frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2RGB)
+            elif color=='hsv':
+                frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2HSV)
+            elif color=='ycbcr':
+                frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2YCR_CB)
             frame = np.asarray(frame)
             frame = cv2.resize(frame, (w, h))
             frames.append(frame)
