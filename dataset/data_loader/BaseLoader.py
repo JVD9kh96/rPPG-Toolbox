@@ -63,6 +63,11 @@ class BaseLoader(Dataset):
         assert (config_data.BEGIN > 0 or config_data.BEGIN == 0)
         assert (config_data.END < 1 or config_data.END == 1)
         if config_data.DO_PREPROCESS:
+            if config_data.FACE_DETECTOR == "Retina":
+                print('loading model ...')
+                self.retina = RetinaFace.build_model()
+                # self.retina = None
+                print('loading finished!')
             self.raw_data_dirs = self.get_raw_data(self.raw_data_path)
             
             self.cached_path = self.cached_path + 'myRaw'
@@ -284,7 +289,7 @@ class BaseLoader(Dataset):
             './dataset/haarcascade_frontalface_default.xml')
             face_zone = detector.detectMultiScale(frame)
         elif self.config_data.FACE_DETECTOR == 'Retina': 
-            face_zone = self.retina_prediction(frame)
+            face_zone = self.retina_prediction(frame, self.retina)
         else: 
             raise ValueError("The FACE_DETECTOR should be either Haar or Retina")
 
@@ -428,7 +433,7 @@ class BaseLoader(Dataset):
             count += 1
         return input_path_name_list, label_path_name_list
 
-    def multi_process_manager(self, data_dirs, config_preprocess, multi_process_quota=1, RAW_MODE=False):
+    def multi_process_manager(self, data_dirs, config_preprocess, multi_process_quota=8, RAW_MODE=False):
         """Allocate dataset preprocessing across multiple processes.
 
         Args:
@@ -599,7 +604,7 @@ class BaseLoader(Dataset):
                 1, input_signal.shape[0], target_length), np.linspace(
                 1, input_signal.shape[0], input_signal.shape[0]), input_signal)
     @staticmethod 
-    def retina_prediction(image):
+    def retina_prediction(image, model):
         """This functions take an image array as input, 
         then save it as a temporary file, so that the 
         RetinaFace.detect_faces(image_path) could work 
@@ -612,7 +617,7 @@ class BaseLoader(Dataset):
         """
 
         bgrimage = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        predictions = RetinaFace.detect_faces(bgrimage)
+        predictions = RetinaFace.detect_faces(bgrimage, model=model)
         output = [] 
         for key in predictions.keys():
             #box: [ymin, xmin, ymax, xmax]
