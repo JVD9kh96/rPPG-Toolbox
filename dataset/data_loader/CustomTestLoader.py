@@ -79,6 +79,8 @@ class CustomTestLoader(BaseLoader):
                 frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2HSV)
             elif color=='ycbcr':
                 frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2YCR_CB)
+            elif color == 'lab':
+                frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2Lab)
             frame = np.asarray(frame)
             frame = cv2.resize(frame, (w, h))
             frames.append(frame)
