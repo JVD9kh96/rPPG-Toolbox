@@ -428,7 +428,7 @@ class BaseLoader(Dataset):
             count += 1
         return input_path_name_list, label_path_name_list
 
-    def multi_process_manager(self, data_dirs, config_preprocess, multi_process_quota=2, RAW_MODE=False):
+    def multi_process_manager(self, data_dirs, config_preprocess, multi_process_quota=1, RAW_MODE=False):
         """Allocate dataset preprocessing across multiple processes.
 
         Args:
