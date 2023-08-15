@@ -67,7 +67,9 @@ class BaseLoader(Dataset):
             
             self.cached_path = self.cached_path + 'hsv'
             self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, color='hsv')
-            self.cached_path = self.cached_path.replace('hsv', 'ycbcr')
+            self.cached_path = self.cached_path.replace('hsv', 'lab')
+            self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, color='lab')
+            self.cached_path = self.cached_path.replace('lab', 'ycbcr')
             self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, color='ycbcr')
             self.cached_path = self.cached_path.replace('ycbcr', '')
             self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, color='rgb')
