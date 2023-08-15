@@ -16,7 +16,7 @@ from unsupervised_methods.methods import POS_WANG
 from unsupervised_methods import utils
 import math
 from multiprocessing import Pool, Process, Value, Array, Manager
-
+from retinaface import RetinaFace
 import cv2
 import numpy as np
 import pandas as pd
@@ -65,14 +65,10 @@ class BaseLoader(Dataset):
         if config_data.DO_PREPROCESS:
             self.raw_data_dirs = self.get_raw_data(self.raw_data_path)
             
-            self.cached_path = self.cached_path + 'hsv'
-            self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, color='hsv')
-            self.cached_path = self.cached_path.replace('hsv', 'lab')
-            self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, color='lab')
-            self.cached_path = self.cached_path.replace('lab', 'ycbcr')
-            self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, color='ycbcr')
-            self.cached_path = self.cached_path.replace('ycbcr', '')
-            self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, color='rgb')
+            self.cached_path = self.cached_path + 'myRaw'
+            self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, RAW_MODE=True)
+            self.cached_path = self.cached_path.replace('myRaw', '')
+            self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, RAW_MODE=False)
         else:
             if not os.path.exists(self.cached_path):
                 print('CACHED_PATH:', self.cached_path)
@@ -201,7 +197,7 @@ class BaseLoader(Dataset):
 
         return np.array(env_norm_bvp) # return POS psuedo labels
     
-    def preprocess_dataset(self, data_dirs, config_preprocess, begin, end, color='rgb'):
+    def preprocess_dataset(self, data_dirs, config_preprocess, begin, end, RAW_MODE=False):
         """Parses and preprocesses all the raw data based on split.
 
         Args:
@@ -212,12 +208,12 @@ class BaseLoader(Dataset):
         """
         data_dirs_split = self.split_raw_data(data_dirs, begin, end)  # partition dataset 
         # send data directories to be processed
-        file_list_dict = self.multi_process_manager(data_dirs_split, config_preprocess, color=color) 
+        file_list_dict = self.multi_process_manager(data_dirs_split, config_preprocess, RAW_MODE=RAW_MODE) 
         self.build_file_list(file_list_dict)  # build file list
         self.load_preprocessed_data()  # load all data and corresponding labels (sorted for consistency)
         print("Total Number of raw files preprocessed:", len(data_dirs_split), end='\n\n')
 
-    def preprocess(self, frames, bvps, config_preprocess):
+    def preprocess(self, frames, bvps, config_preprocess, RAW_MODE=False):
         """Preprocesses a pair of data.
 
         Args:
@@ -241,17 +237,20 @@ class BaseLoader(Dataset):
             config_preprocess.RESIZE.H)
         # Check data transformation type
         data = list()  # Video data
-        for data_type in config_preprocess.DATA_TYPE:
-            f_c = frames.copy()
-            if data_type == "Raw":
-                data.append(f_c)
-            elif data_type == "DiffNormalized":
-                data.append(BaseLoader.diff_normalize_data(f_c))
-            elif data_type == "Standardized":
-                data.append(BaseLoader.standardized_data(f_c))
-            else:
-                raise ValueError("Unsupported data type!")
-        data = np.concatenate(data, axis=-1)  # concatenate all channels
+        if not RAW_MODE:
+            for data_type in config_preprocess.DATA_TYPE:
+                f_c = frames.copy()
+                if data_type == "Raw":
+                    data.append(f_c)
+                elif data_type == "DiffNormalized":
+                    data.append(BaseLoader.diff_normalize_data(f_c))
+                elif data_type == "Standardized":
+                    data.append(BaseLoader.standardized_data(f_c))
+                else:
+                    raise ValueError("Unsupported data type!")
+            data = np.concatenate(data, axis=-1)  # concatenate all channels
+        else: 
+            data = frames.copy()
         if config_preprocess.LABEL_TYPE == "Raw":
             pass
         elif config_preprocess.LABEL_TYPE == "DiffNormalized":
@@ -280,10 +279,15 @@ class BaseLoader(Dataset):
         Returns:
             face_box_coor(List[int]): coordinates of face bouding box.
         """
+        if self.config_data.FACE_DETECTOR == 'Haar':
+            detector = cv2.CascadeClassifier(
+            './dataset/haarcascade_frontalface_default.xml')
+            face_zone = detector.detectMultiScale(frame)
+        elif self.config_data.FACE_DETECTOR == 'Retina': 
+            face_zone = self.retina_prediction(frame)
+        else: 
+            raise ValueError("The FACE_DETECTOR should be either Haar or Retina")
 
-        detector = cv2.CascadeClassifier(
-           './dataset/haarcascade_frontalface_default.xml')
-        face_zone = detector.detectMultiScale(frame)
         if len(face_zone) < 1:
             print("ERROR: No Face Detected")
             face_box_coor = [0, 0, frame.shape[0], frame.shape[1]]
@@ -424,7 +428,7 @@ class BaseLoader(Dataset):
             count += 1
         return input_path_name_list, label_path_name_list
 
-    def multi_process_manager(self, data_dirs, config_preprocess, multi_process_quota=8, color='rgb'):
+    def multi_process_manager(self, data_dirs, config_preprocess, multi_process_quota=8, RAW_MODE=False):
         """Allocate dataset preprocessing across multiple processes.
 
         Args:
@@ -452,7 +456,7 @@ class BaseLoader(Dataset):
                 if running_num < multi_process_quota:  # in case of too many processes
                     # send data to be preprocessing task
                     p = Process(target=self.preprocess_dataset_subprocess, 
-                                args=(data_dirs,config_preprocess, i, file_list_dict, color))
+                                args=(data_dirs,config_preprocess, i, file_list_dict, RAW_MODE))
                     p.start()
                     p_list.append(p)
                     running_num += 1
@@ -594,3 +598,25 @@ class BaseLoader(Dataset):
             np.linspace(
                 1, input_signal.shape[0], target_length), np.linspace(
                 1, input_signal.shape[0], input_signal.shape[0]), input_signal)
+    @staticmethod 
+    def retina_prediction(image):
+        """This functions take an image array as input, 
+        then save it as a temporary file, so that the 
+        RetinaFace.detect_faces(image_path) could work 
+        on it.
+        image : numpy array 
+
+        output: a python list containing boxes for all 
+        faces in the image. The boxes have the same 
+        format as Haar cascade prediction. 
+        """
+
+        bgrimage = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        predictions = RetinaFace.detect_faces(bgrimage)
+        output = [] 
+        for key in predictions.keys():
+            #box: [ymin, xmin, ymax, xmax]
+            box = predictions[key]['facial_area']
+            #box: [ymin, xmin, height, width]
+            output.append([box[0], box[1], box[2]-box[0], box[3]-box[1]])
+        return output 

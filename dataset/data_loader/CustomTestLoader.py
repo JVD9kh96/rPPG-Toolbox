@@ -45,23 +45,23 @@ class CustomTestLoader(BaseLoader):
         """Does nothing here!"""
         return data_dirs
 
-    def preprocess_dataset_subprocess(self, data_dirs, config_preprocess, i, file_list_dict, color='rgb'):
+    def preprocess_dataset_subprocess(self, data_dirs, config_preprocess, i, file_list_dict, RAW_MODE=False):
         """ invoked by preprocess_dataset for multi_process."""
         filename = os.path.split(data_dirs[i]['path'])[-1]
         saved_filename = data_dirs[i]['index']
 
         # Read Frames
-        frames = self.read_video(data_dirs[i]['path'], color=color)
+        frames = self.read_video(data_dirs[i]['path'])
 
         # Read Labels, actually, it generates psuedo labels!
         bvps = self.generate_pos_psuedo_labels(frames, fs=self.config_data.FS)
             
-        frames_clips, bvps_clips = self.preprocess(frames, bvps, config_preprocess)
+        frames_clips, bvps_clips = self.preprocess(frames, bvps, config_preprocess, RAW_MODE=RAW_MODE)
         input_name_list, label_name_list = self.save_multi_process(frames_clips, bvps_clips, saved_filename)
         file_list_dict[i] = input_name_list
 
     @staticmethod
-    def read_video(video_file, color='rgb'):
+    def read_video(video_file):
         """Reads a video file, returns frames(T, H, W, 3) """
         VidObj = cv2.VideoCapture(video_file)
         VidObj.set(cv2.CAP_PROP_POS_MSEC, 0)
@@ -73,14 +73,7 @@ class CustomTestLoader(BaseLoader):
         frames = list()
         
         while success:
-            if color=='rgb':
-                frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2RGB)
-            elif color=='hsv':
-                frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2HSV)
-            elif color=='ycbcr':
-                frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2YCR_CB)
-            elif color == 'lab':
-                frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2Lab)
+            frame = cv2.cvtColor(np.array(frame), cv2.COLOR_BGR2RGB)
             frame = np.asarray(frame)
             frame = cv2.resize(frame, (w, h))
             frames.append(frame)
