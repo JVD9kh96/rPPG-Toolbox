@@ -269,7 +269,12 @@ class BaseLoader(Dataset):
 
         return frames_clips, bvps_clips
 
-    def face_detection(self, frame, use_larger_box=False, larger_box_coef=1.0):
+    def face_detection(self,
+                       frame,
+                       use_larger_box=False,
+                       larger_box_coef=1.0, 
+                       return_keypoints=False,
+                       ):
         """Face detection on a single frame.
 
         Args:
@@ -279,12 +284,14 @@ class BaseLoader(Dataset):
         Returns:
             face_box_coor(List[int]): coordinates of face bouding box.
         """
+         
         if self.config_data.FACE_DETECTOR == 'Haar':
+            assert not return_keypoints, "Haar cannot detect keypoints"
             detector = cv2.CascadeClassifier(
             './dataset/haarcascade_frontalface_default.xml')
             face_zone = detector.detectMultiScale(frame)
         elif self.config_data.FACE_DETECTOR == 'Retina': 
-            face_zone = self.retina_prediction(frame)
+            face_zone, kps = self.retina_prediction(frame)
         else: 
             raise ValueError("The FACE_DETECTOR should be either Haar or Retina")
 
@@ -297,15 +304,20 @@ class BaseLoader(Dataset):
             print("Warning: More than one faces are detected(Only cropping the biggest one.)")
         else:
             face_box_coor = face_zone[0]
+            kps           = kps[0]
         if use_larger_box:
             face_box_coor[0] = max(0, face_box_coor[0] - (larger_box_coef - 1.0) / 2 * face_box_coor[2])
             face_box_coor[1] = max(0, face_box_coor[1] - (larger_box_coef - 1.0) / 2 * face_box_coor[3])
             face_box_coor[2] = larger_box_coef * face_box_coor[2]
             face_box_coor[3] = larger_box_coef * face_box_coor[3]
-        return face_box_coor
+        if not return_keypoints:
+            return face_box_coor
+        else: 
+            return (face_box_coor, kps)
 
     def crop_face_resize(self, frames, use_face_detection, use_larger_box, larger_box_coef, use_dynamic_detection, 
-                         detection_freq, use_median_box, width, height):
+                         detection_freq, use_median_box, width, height, 
+                         use_keypoints=False):
         """Crop face and resize frames.
 
         Args:
@@ -329,10 +341,16 @@ class BaseLoader(Dataset):
         else:
             num_dynamic_det = 1
         face_region_all = []
+        kps_all         = []
         # Perform face detection by num_dynamic_det" times.
         for idx in range(num_dynamic_det):
             if use_face_detection:
-                face_region_all.append(self.face_detection(frames[detection_freq * idx], use_larger_box, larger_box_coef))
+                detection_result = self.face_detection(frames[detection_freq * idx], use_larger_box, larger_box_coef)
+                if use_keypoints:
+                    face_region_all.append(detection_result[0])
+                    kps_all.append(detection_result[1])
+                else:
+                    face_region_all.append(detection_result)
             else:
                 face_region_all.append([0, 0, frames.shape[1], frames.shape[2]])
         face_region_all = np.asarray(face_region_all, dtype='int')
@@ -611,12 +629,35 @@ class BaseLoader(Dataset):
         format as Haar cascade prediction. 
         """
 
-        bgrimage = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        bgrimage    = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         predictions = RetinaFace.detect_faces(bgrimage)
-        output = [] 
+        output_box  = [] 
+        output_kps  = []
+        kps_names   = ['right_eye', 'left_eye', 'nose', 'mouth_right', 'mouth_right']
         for key in predictions.keys():
             #box: [ymin, xmin, ymax, xmax]
             box = predictions[key]['facial_area']
+            kps = predictions[key]['landmarks']
             #box: [ymin, xmin, height, width]
-            output.append([box[0], box[1], box[2]-box[0], box[3]-box[1]])
-        return output 
+            output_box.append([box[0], box[1], box[2]-box[0], box[3]-box[1]])
+            output_kps.append(np.array([kps[i] for i in kps_names]))
+       
+        return output_box, output_kps
+
+    @staticmethod
+    def align_face(image, source_keypoints=None, target_keypoints=None):
+        if target_keypoints is None:
+            return image
+        else:
+            M = cv2.estimateAffinePartial2D(source_keypoints, target_keypoints)[0]
+            return cv2.warpAffine(image, M, (image.shape[1], image.shape[0]))
+
+    @staticmethod
+    def retina_detect_align(image, target_keypoints=None):
+        _,     kps = BaseLoader.retina_prediction(image)
+        kps        = kps[0]
+        image      = BaseLoader.align_face(image,
+                                           source_keypoints=kps,
+                                           target_keypoints=target_keypoints)
+        boxes      = BaseLoader.retina_prediction(image)
+        return boxes
