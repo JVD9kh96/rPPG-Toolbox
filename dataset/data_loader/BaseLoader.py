@@ -23,12 +23,22 @@ import pandas as pd
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-def apply_low_pass_filter(boxes, alpha=0.9):
+def apply_low_pass_filter(boxes, alpha=0.01):
     filtered_boxes = np.copy(boxes)
     for i in range(1, boxes.shape[0]):
         filtered_boxes[i] = alpha * boxes[i] + (1 - alpha) * filtered_boxes[i - 1]
     return filtered_boxes
 
+def weighted_moving_average(data, weights=np.array([0.1, 0.2, 0.3, 0.2, 0.1])):
+    smoothed_data = []
+    for i in range(len(data)):
+        start_idx = max(0, i - len(weights) + 1)
+        window = data[start_idx:i + 1]
+        weighted_sum = np.sum(window * weights[:len(window)][:, np.newaxis], axis=0)
+        weighted_avg = weighted_sum / np.sum(weights[:len(window)])
+        smoothed_data.append(weighted_avg)
+    return np.array(smoothed_data).astype('int')
+    
 class BaseLoader(Dataset):
     """The base class for data loading based on pytorch Dataset.
 
@@ -394,6 +404,7 @@ class BaseLoader(Dataset):
             # Generate a median bounding box based on all detected face regions
             face_region_median = np.median(face_region_all, axis=0).astype('int')
         elif use_low_pass:
+            # face_region_all = weighted_moving_average(face_region_all)
             face_region_all = apply_low_pass_filter(face_region_all)    
         
         resized_frames = np.zeros((frames.shape[0], height, width, 3))
