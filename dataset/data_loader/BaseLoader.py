@@ -23,6 +23,11 @@ import pandas as pd
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
+def apply_low_pass_filter(boxes, alpha=0.9):
+    filtered_boxes = np.copy(boxes)
+    for i in range(1, boxes.shape[0]):
+        filtered_boxes[i] = alpha * boxes[i] + (1 - alpha) * filtered_boxes[i - 1]
+    return filtered_boxes
 
 class BaseLoader(Dataset):
     """The base class for data loading based on pytorch Dataset.
@@ -318,7 +323,7 @@ class BaseLoader(Dataset):
         return (face_box_coor, kps)
 
     def crop_face_resize(self, frames, use_face_detection, use_larger_box, larger_box_coef, use_dynamic_detection, 
-                         detection_freq, use_median_box, width, height, 
+                         detection_freq, use_median_box, width, height, use_low_pass=True,
                          use_keypoints=False):
         """Crop face and resize frames.
 
@@ -359,19 +364,45 @@ class BaseLoader(Dataset):
             else:
                 face_region_all.append([0, 0, frames.shape[1], frames.shape[2]])
         face_region_all = np.asarray(face_region_all, dtype='int')
-        if use_median_box:
-            # Generate a median bounding box based on all detected face regions
-            face_region_median = np.median(face_region_all, axis=0).astype('int')
-
         kps_all = kps_all[1:]
         if use_keypoints: assert len(kps_all) == len(face_region_all), "no. of kps should be equal to boxes"
         # Frame Resizing
         print(f'\n\n\n\nkps all!{kps_all}{use_keypoints}\n\n\n\n\n')
+
+        if use_keypoints:
+            face_region_all = []
+            for i in range(0, frames.shape[0]):
+                frame = frames[i]
+                if use_face_detection:
+                    # if use_median_box:
+                    #     face_region = face_region_median
+                    # else:
+                    #     face_region = face_region_all[reference_index]
+                        # print(face_region)
+                    face_region, frame = BaseLoader.retina_detect_align(frame,
+                                                        kps_all[0])
+                    # print(face_region)
+                    face_region = face_region[0][0] if len(face_region)>1 else face_region[0]
+                        # print(face_region)
+                    frames[i] = frame
+                    face_region_all.append(face_region)
+                    print(face_region)
+            face_region_all = np.asarray(face_region_all, dtype='int')
+            print(face_region_all.shape)
+            # face_region_median = np.median(face_region_all, axis=0).astype('int')
+        if use_median_box:
+            # Generate a median bounding box based on all detected face regions
+            face_region_median = np.median(face_region_all, axis=0).astype('int')
+        elif use_low_pass:
+            face_region_all = apply_low_pass_filter(face_region_all)    
+        
         resized_frames = np.zeros((frames.shape[0], height, width, 3))
         for i in range(0, frames.shape[0]):
             frame = frames[i]
             if use_dynamic_detection:  # use the (i // detection_freq)-th facial region.
                 reference_index = i // detection_freq
+            elif use_keypoints:
+                reference_index = i
             else:  # use the first region obtrained from the first frame.
                 reference_index = 0
             if use_face_detection:
@@ -379,13 +410,14 @@ class BaseLoader(Dataset):
                     face_region = face_region_median
                 else:
                     face_region = face_region_all[reference_index]
-                if use_keypoints:
-                    print(face_region)
-                    face_region, frame = BaseLoader.retina_detect_align(frame,
-                                                           kps_all[0])
-                    print(face_region)
-                    face_region = face_region[0][0] if len(face_region)>1 else face_region[0]
-                    print(face_region)
+                print(face_region)
+                # if use_keypoints:
+                #     print(face_region)
+                #     face_region, frame = BaseLoader.retina_detect_align(frame,
+                #                                            kps_all[0])
+                #     print(face_region)
+                #     face_region = face_region[0][0] if len(face_region)>1 else face_region[0]
+                #     print(face_region)
                 frame = frame[max(face_region[1], 0):min(face_region[1] + face_region[3], frame.shape[0]),
                         max(face_region[0], 0):min(face_region[0] + face_region[2], frame.shape[1])]
             resized_frames[i] = cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
@@ -670,7 +702,7 @@ class BaseLoader(Dataset):
     def retina_detect_align(image, target_keypoints=None):
         _,     kps = BaseLoader.retina_prediction(image)
         kps        = kps[0]
-        print(f'\n\n\n\n####\n{kps}\n####\n\n\n\n')
+        # print(f'\n\n\n\n####\n{kps}\n####\n\n\n\n')
         # image      = BaseLoader.align_face(image,
         #                                    source_keypoints=kps,
         #                                    target_keypoints=target_keypoints)
