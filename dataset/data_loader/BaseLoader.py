@@ -366,6 +366,7 @@ class BaseLoader(Dataset):
         kps_all = kps_all[1:]
         if use_keypoints: assert len(kps_all) == len(face_region_all), "no. of kps should be equal to boxes"
         # Frame Resizing
+        print(f'\n\n\n\nkps all!{kps_all}{use_keypoints}\n\n\n\n\n')
         resized_frames = np.zeros((frames.shape[0], height, width, 3))
         for i in range(0, frames.shape[0]):
             frame = frames[i]
@@ -379,9 +380,12 @@ class BaseLoader(Dataset):
                 else:
                     face_region = face_region_all[reference_index]
                 if use_keypoints:
+                    print(face_region)
                     face_region, frame = BaseLoader.retina_detect_align(frame,
                                                            kps_all[0])
-                    face_region = face_region[0] if len(face_region)>1 else face_region
+                    print(face_region)
+                    face_region = face_region[0][0] if len(face_region)>1 else face_region[0]
+                    print(face_region)
                 frame = frame[max(face_region[1], 0):min(face_region[1] + face_region[3], frame.shape[0]),
                         max(face_region[0], 0):min(face_region[0] + face_region[2], frame.shape[1])]
             resized_frames[i] = cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
@@ -666,10 +670,11 @@ class BaseLoader(Dataset):
     def retina_detect_align(image, target_keypoints=None):
         _,     kps = BaseLoader.retina_prediction(image)
         kps        = kps[0]
-        image      = BaseLoader.align_face(image,
-                                           source_keypoints=kps,
-                                           target_keypoints=target_keypoints)
-        boxes      = BaseLoader.retina_prediction(image)
+        print(f'\n\n\n\n####\n{kps}\n####\n\n\n\n')
+        # image      = BaseLoader.align_face(image,
+        #                                    source_keypoints=kps,
+        #                                    target_keypoints=target_keypoints)
+        boxes, _   = BaseLoader.retina_prediction(image)
         return boxes, image
     # @staticmethod
     # def retina_align_detect(image, source_keypoints, target_keypoints=None):
