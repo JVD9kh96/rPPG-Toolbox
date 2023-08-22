@@ -234,7 +234,8 @@ class BaseLoader(Dataset):
             config_preprocess.CROP_FACE.DETECTION.DYNAMIC_DETECTION_FREQUENCY,
             config_preprocess.CROP_FACE.DETECTION.USE_MEDIAN_FACE_BOX,
             config_preprocess.RESIZE.W,
-            config_preprocess.RESIZE.H)
+            config_preprocess.RESIZE.H,
+            use_keypoints=config_preprocess.CROP_FACE.ALIGN_FACE)
         # Check data transformation type
         data = list()  # Video data
         if not RAW_MODE:
@@ -273,7 +274,7 @@ class BaseLoader(Dataset):
                        frame,
                        use_larger_box=False,
                        larger_box_coef=1.0, 
-                       return_keypoints=False,
+                       kps=None,
                        ):
         """Face detection on a single frame.
 
@@ -286,12 +287,13 @@ class BaseLoader(Dataset):
         """
          
         if self.config_data.FACE_DETECTOR == 'Haar':
-            assert not return_keypoints, "Haar cannot detect keypoints"
+            assert kps is None, "Haar cannot detect keypoints"
             detector = cv2.CascadeClassifier(
             './dataset/haarcascade_frontalface_default.xml')
             face_zone = detector.detectMultiScale(frame)
         elif self.config_data.FACE_DETECTOR == 'Retina': 
             face_zone, kps = self.retina_prediction(frame)
+            # face_zone, kps = self.retina_detect_align(frame, kps)
         else: 
             raise ValueError("The FACE_DETECTOR should be either Haar or Retina")
 
@@ -310,10 +312,10 @@ class BaseLoader(Dataset):
             face_box_coor[1] = max(0, face_box_coor[1] - (larger_box_coef - 1.0) / 2 * face_box_coor[3])
             face_box_coor[2] = larger_box_coef * face_box_coor[2]
             face_box_coor[3] = larger_box_coef * face_box_coor[3]
-        if not return_keypoints:
-            return face_box_coor
-        else: 
-            return (face_box_coor, kps)
+        # if not return_keypoints:
+        #     return face_box_coor
+        # else: 
+        return (face_box_coor, kps)
 
     def crop_face_resize(self, frames, use_face_detection, use_larger_box, larger_box_coef, use_dynamic_detection, 
                          detection_freq, use_median_box, width, height, 
@@ -341,16 +343,19 @@ class BaseLoader(Dataset):
         else:
             num_dynamic_det = 1
         face_region_all = []
-        kps_all         = []
+        kps_all         = [None]
         # Perform face detection by num_dynamic_det" times.
         for idx in range(num_dynamic_det):
             if use_face_detection:
-                detection_result = self.face_detection(frames[detection_freq * idx], use_larger_box, larger_box_coef)
-                if use_keypoints:
-                    face_region_all.append(detection_result[0])
-                    kps_all.append(detection_result[1])
-                else:
-                    face_region_all.append(detection_result)
+                detection_result = self.face_detection(frames[detection_freq * idx],
+                                                       use_larger_box,
+                                                       larger_box_coef,
+                                                       kps=kps_all[-1])
+                # if use_keypoints:
+                face_region_all.append(detection_result[0])
+                kps_all.append(detection_result[1])
+                # else:
+                #     face_region_all.append(detection_result)
             else:
                 face_region_all.append([0, 0, frames.shape[1], frames.shape[2]])
         face_region_all = np.asarray(face_region_all, dtype='int')
@@ -358,7 +363,8 @@ class BaseLoader(Dataset):
             # Generate a median bounding box based on all detected face regions
             face_region_median = np.median(face_region_all, axis=0).astype('int')
 
-
+        kps_all = kps_all[1:]
+        if use_keypoints: assert len(kps_all) == len(face_region_all), "no. of kps should be equal to boxes"
         # Frame Resizing
         resized_frames = np.zeros((frames.shape[0], height, width, 3))
         for i in range(0, frames.shape[0]):
@@ -372,6 +378,10 @@ class BaseLoader(Dataset):
                     face_region = face_region_median
                 else:
                     face_region = face_region_all[reference_index]
+                if use_keypoints:
+                    face_region, frame = BaseLoader.retina_detect_align(frame,
+                                                           kps_all[0])
+                    face_region = face_region[0] if len(face_region)>1 else face_region
                 frame = frame[max(face_region[1], 0):min(face_region[1] + face_region[3], frame.shape[0]),
                         max(face_region[0], 0):min(face_region[0] + face_region[2], frame.shape[1])]
             resized_frames[i] = cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
@@ -660,4 +670,6 @@ class BaseLoader(Dataset):
                                            source_keypoints=kps,
                                            target_keypoints=target_keypoints)
         boxes      = BaseLoader.retina_prediction(image)
-        return boxes
+        return boxes, image
+    # @staticmethod
+    # def retina_align_detect(image, source_keypoints, target_keypoints=None):
