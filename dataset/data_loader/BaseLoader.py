@@ -23,7 +23,7 @@ import pandas as pd
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-def low_pass_filter(prev_kps, next_kps, alpha=0.01):
+def low_pass_filter(prev_kps, next_kps, alpha=0.1):
     return alpha * next_kps + (1.0 - alpha) * prev_kps
 # def apply_low_pass_filter(boxes, alpha=0.01):
 #     filtered_boxes = np.copy(boxes)
@@ -716,7 +716,9 @@ class BaseLoader(Dataset):
         _,     kps = BaseLoader.retina_prediction(image)
         kps        = kps[0]
         # print(f'\n\n\n\n####\n{kps}\n####\n\n\n\n')
-        kps        = low_pass_filter(prev_kps, kps, alpha=0.99)
+        # print(kps, end=' ')
+        kps        = low_pass_filter(prev_kps, kps)
+        # print(kps)
         image      = BaseLoader.align_face(image,
                                            source_keypoints=kps,
                                            target_keypoints=target_keypoints)
