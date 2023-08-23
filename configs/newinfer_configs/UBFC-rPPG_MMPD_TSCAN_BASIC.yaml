@@ -35,7 +35,7 @@ TEST:
         DETECTION:
           DO_DYNAMIC_DETECTION: False
           DYNAMIC_DETECTION_FREQUENCY : 10
-          USE_MEDIAN_FACE_BOX: False    # This should be used ONLY if dynamic detection is used
+          USE_MEDIAN_FACE_BOX: True    # This should be used ONLY if dynamic detection is used
       RESIZE:
         H: 72
         W: 72
