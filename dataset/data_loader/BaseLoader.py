@@ -23,21 +23,21 @@ import pandas as pd
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-def apply_low_pass_filter(boxes, alpha=0.01):
-    filtered_boxes = np.copy(boxes)
-    for i in range(1, boxes.shape[0]):
-        filtered_boxes[i] = alpha * boxes[i] + (1 - alpha) * filtered_boxes[i - 1]
-    return filtered_boxes
+# def apply_low_pass_filter(boxes, alpha=0.01):
+#     filtered_boxes = np.copy(boxes)
+#     for i in range(1, boxes.shape[0]):
+#         filtered_boxes[i] = alpha * boxes[i] + (1 - alpha) * filtered_boxes[i - 1]
+#     return filtered_boxes
 
-def weighted_moving_average(data, weights=np.array([0.1, 0.2, 0.3, 0.2, 0.1])):
-    smoothed_data = []
-    for i in range(len(data)):
-        start_idx = max(0, i - len(weights) + 1)
-        window = data[start_idx:i + 1]
-        weighted_sum = np.sum(window * weights[:len(window)][:, np.newaxis], axis=0)
-        weighted_avg = weighted_sum / np.sum(weights[:len(window)])
-        smoothed_data.append(weighted_avg)
-    return np.array(smoothed_data).astype('int')
+# def weighted_moving_average(data, weights=np.array([0.1, 0.2, 0.3, 0.2, 0.1])):
+#     smoothed_data = []
+#     for i in range(len(data)):
+#         start_idx = max(0, i - len(weights) + 1)
+#         window = data[start_idx:i + 1]
+#         weighted_sum = np.sum(window * weights[:len(window)][:, np.newaxis], axis=0)
+#         weighted_avg = weighted_sum / np.sum(weights[:len(window)])
+#         smoothed_data.append(weighted_avg)
+#     return np.array(smoothed_data).astype('int')
     
 class BaseLoader(Dataset):
     """The base class for data loading based on pytorch Dataset.
@@ -333,7 +333,7 @@ class BaseLoader(Dataset):
         return (face_box_coor, kps)
 
     def crop_face_resize(self, frames, use_face_detection, use_larger_box, larger_box_coef, use_dynamic_detection, 
-                         detection_freq, use_median_box, width, height, use_low_pass=True,
+                         detection_freq, use_median_box, width, height, use_low_pass=False,
                          use_keypoints=False):
         """Crop face and resize frames.
 
@@ -377,7 +377,7 @@ class BaseLoader(Dataset):
         kps_all = kps_all[1:]
         if use_keypoints: assert len(kps_all) == len(face_region_all), "no. of kps should be equal to boxes"
         # Frame Resizing
-        print(f'\n\n\n\nkps all!{kps_all}{use_keypoints}\n\n\n\n\n')
+        # print(f'\n\n\n\nkps all!{kps_all}{use_keypoints}\n\n\n\n\n')
 
         if use_keypoints:
             face_region_all = []
@@ -396,16 +396,16 @@ class BaseLoader(Dataset):
                         # print(face_region)
                     frames[i] = frame
                     face_region_all.append(face_region)
-                    print(face_region)
+                    # print(face_region)
             face_region_all = np.asarray(face_region_all, dtype='int')
-            print(face_region_all.shape)
+            # print(face_region_all.shape)
             # face_region_median = np.median(face_region_all, axis=0).astype('int')
         if use_median_box:
             # Generate a median bounding box based on all detected face regions
             face_region_median = np.median(face_region_all, axis=0).astype('int')
-        elif use_low_pass:
-            # face_region_all = weighted_moving_average(face_region_all)
-            face_region_all = apply_low_pass_filter(face_region_all)    
+        # elif use_low_pass:
+        #     # face_region_all = weighted_moving_average(face_region_all)
+        #     face_region_all = apply_low_pass_filter(face_region_all)    
         
         resized_frames = np.zeros((frames.shape[0], height, width, 3))
         for i in range(0, frames.shape[0]):
@@ -421,7 +421,7 @@ class BaseLoader(Dataset):
                     face_region = face_region_median
                 else:
                     face_region = face_region_all[reference_index]
-                print(face_region)
+                # print(face_region)
                 # if use_keypoints:
                 #     print(face_region)
                 #     face_region, frame = BaseLoader.retina_detect_align(frame,
@@ -714,10 +714,9 @@ class BaseLoader(Dataset):
         _,     kps = BaseLoader.retina_prediction(image)
         kps        = kps[0]
         # print(f'\n\n\n\n####\n{kps}\n####\n\n\n\n')
-        # image      = BaseLoader.align_face(image,
-        #                                    source_keypoints=kps,
-        #                                    target_keypoints=target_keypoints)
+        image      = BaseLoader.align_face(image,
+                                           source_keypoints=kps,
+                                           target_keypoints=target_keypoints)
         boxes, _   = BaseLoader.retina_prediction(image)
         return boxes, image
-    # @staticmethod
-    # def retina_align_detect(image, source_keypoints, target_keypoints=None):
+
