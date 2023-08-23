@@ -23,6 +23,8 @@ import pandas as pd
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
+def low_pass_filter(prev_kps, next_kps, alpha=0.01):
+    return alpha * next_kps + (1.0 - alpha) * prev_kps
 # def apply_low_pass_filter(boxes, alpha=0.01):
 #     filtered_boxes = np.copy(boxes)
 #     for i in range(1, boxes.shape[0]):
@@ -378,7 +380,7 @@ class BaseLoader(Dataset):
         if use_keypoints: assert len(kps_all) == len(face_region_all), "no. of kps should be equal to boxes"
         # Frame Resizing
         # print(f'\n\n\n\nkps all!{kps_all}{use_keypoints}\n\n\n\n\n')
-
+        prev_kps = kps_all[-1]
         if use_keypoints:
             face_region_all = []
             for i in range(0, frames.shape[0]):
@@ -389,8 +391,8 @@ class BaseLoader(Dataset):
                     # else:
                     #     face_region = face_region_all[reference_index]
                         # print(face_region)
-                    face_region, frame = BaseLoader.retina_detect_align(frame,
-                                                        kps_all[0])
+                    face_region, frame, prev_kps = BaseLoader.retina_detect_align(frame,
+                                                        kps_all[0], prev_kps)
                     # print(face_region)
                     face_region = face_region[0][0] if len(face_region)>1 else face_region[0]
                         # print(face_region)
@@ -710,13 +712,14 @@ class BaseLoader(Dataset):
             return cv2.warpAffine(image, M, (image.shape[1], image.shape[0]))
 
     @staticmethod
-    def retina_detect_align(image, target_keypoints=None):
+    def retina_detect_align(image, target_keypoints=None, prev_kps=None):
         _,     kps = BaseLoader.retina_prediction(image)
         kps        = kps[0]
         # print(f'\n\n\n\n####\n{kps}\n####\n\n\n\n')
+        kps        = low_pass_filter(prev_kps, kps, alpha=0.99)
         image      = BaseLoader.align_face(image,
                                            source_keypoints=kps,
                                            target_keypoints=target_keypoints)
         boxes, _   = BaseLoader.retina_prediction(image)
-        return boxes, image
+        return boxes, image, kps
 
