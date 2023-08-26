@@ -84,8 +84,8 @@ class BaseLoader(Dataset):
             
             self.cached_path = self.cached_path + 'myRaw'
             self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, RAW_MODE=True)
-            self.cached_path = self.cached_path.replace('myRaw', '')
-            self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, RAW_MODE=False)
+            # self.cached_path = self.cached_path.replace('myRaw', '')
+            # self.preprocess_dataset(self.raw_data_dirs, config_data.PREPROCESS, config_data.BEGIN, config_data.END, RAW_MODE=False)
         else:
             if not os.path.exists(self.cached_path):
                 print('CACHED_PATH:', self.cached_path)
