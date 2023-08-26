@@ -23,7 +23,7 @@ import pandas as pd
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-def low_pass_filter(prev_kps, next_kps, alpha=0.1):
+def low_pass_filter(prev_kps, next_kps, alpha=1.0):
     return alpha * next_kps + (1.0 - alpha) * prev_kps
 # def apply_low_pass_filter(boxes, alpha=0.01):
 #     filtered_boxes = np.copy(boxes)
