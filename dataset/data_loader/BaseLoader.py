@@ -242,7 +242,7 @@ class BaseLoader(Dataset):
             bvps_clips(np.array): processed bvp (ppg) labels by frames
         """
         # resize frames and crop for face region
-        frames = self.crop_face_resize(
+        frames, bvps = self.crop_face_resize(
             frames,
             config_preprocess.CROP_FACE.DO_CROP_FACE,
             config_preprocess.CROP_FACE.USE_LARGE_FACE_BOX,
@@ -269,14 +269,14 @@ class BaseLoader(Dataset):
             data = np.concatenate(data, axis=-1)  # concatenate all channels
         else: 
             data = frames.copy()
-        if config_preprocess.LABEL_TYPE == "Raw":
-            pass
-        elif config_preprocess.LABEL_TYPE == "DiffNormalized":
-            bvps = BaseLoader.diff_normalize_label(bvps)
-        elif config_preprocess.LABEL_TYPE == "Standardized":
-            bvps = BaseLoader.standardized_label(bvps)
-        else:
-            raise ValueError("Unsupported label type!")
+        # if config_preprocess.LABEL_TYPE == "Raw":
+        #     pass
+        # elif config_preprocess.LABEL_TYPE == "DiffNormalized":
+        #     bvps = BaseLoader.diff_normalize_label(bvps)
+        # elif config_preprocess.LABEL_TYPE == "Standardized":
+        #     bvps = BaseLoader.standardized_label(bvps)
+        # else:
+        #     raise ValueError("Unsupported label type!")
 
         if config_preprocess.DO_CHUNK:  # chunk data into snippets
             frames_clips, bvps_clips = self.chunk(
@@ -399,30 +399,33 @@ class BaseLoader(Dataset):
                     frames[i] = frame
                     face_region_all.append(face_region)
                     # print(face_region)
+                    kps_all.append(prev_kps)
             face_region_all = np.asarray(face_region_all, dtype='int')
+        print(face_region_all.shape, np.array(kps_all).shape)
+        meta_data = np.concatenate((face_region_all, np.array(kps_all[1:]).reshape((-1, 10))), axis=-1)
             # print(face_region_all.shape)
             # face_region_median = np.median(face_region_all, axis=0).astype('int')
-        if use_median_box:
-            # Generate a median bounding box based on all detected face regions
-            face_region_median = np.median(face_region_all, axis=0).astype('int')
+        # if use_median_box:
+        #     # Generate a median bounding box based on all detected face regions
+        #     face_region_median = np.median(face_region_all, axis=0).astype('int')
         # elif use_low_pass:
         #     # face_region_all = weighted_moving_average(face_region_all)
         #     face_region_all = apply_low_pass_filter(face_region_all)    
         
-        resized_frames = np.zeros((frames.shape[0], height, width, 3))
-        for i in range(0, frames.shape[0]):
-            frame = frames[i]
-            if use_dynamic_detection:  # use the (i // detection_freq)-th facial region.
-                reference_index = i // detection_freq
-            elif use_keypoints:
-                reference_index = i
-            else:  # use the first region obtrained from the first frame.
-                reference_index = 0
-            if use_face_detection:
-                if use_median_box:
-                    face_region = face_region_median
-                else:
-                    face_region = face_region_all[reference_index]
+        # resized_frames = np.zeros((frames.shape[0], height, width, 3))
+        # for i in range(0, frames.shape[0]):
+        #     frame = frames[i]
+        #     if use_dynamic_detection:  # use the (i // detection_freq)-th facial region.
+        #         reference_index = i // detection_freq
+        #     elif use_keypoints:
+        #         reference_index = i
+        #     else:  # use the first region obtrained from the first frame.
+        #         reference_index = 0
+        #     if use_face_detection:
+        #         if use_median_box:
+        #             face_region = face_region_median
+        #         else:
+        #             face_region = face_region_all[reference_index]
                 # print(face_region)
                 # if use_keypoints:
                 #     print(face_region)
@@ -431,10 +434,10 @@ class BaseLoader(Dataset):
                 #     print(face_region)
                 #     face_region = face_region[0][0] if len(face_region)>1 else face_region[0]
                 #     print(face_region)
-                frame = frame[max(face_region[1], 0):min(face_region[1] + face_region[3], frame.shape[0]),
-                        max(face_region[0], 0):min(face_region[0] + face_region[2], frame.shape[1])]
-            resized_frames[i] = cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
-        return resized_frames
+            #     frame = frame[max(face_region[1], 0):min(face_region[1] + face_region[3], frame.shape[0]),
+            #             max(face_region[0], 0):min(face_region[0] + face_region[2], frame.shape[1])]
+            # resized_frames[i] = cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
+        return frames, meta_data
 
     def chunk(self, frames, bvps, chunk_length):
         """Chunk the data into small chunks.
@@ -719,9 +722,9 @@ class BaseLoader(Dataset):
         # print(kps, end=' ')
         kps        = low_pass_filter(prev_kps, kps)
         # print(kps)
-        image      = BaseLoader.align_face(image,
-                                           source_keypoints=kps,
-                                           target_keypoints=target_keypoints)
+        # image      = BaseLoader.align_face(image,
+        #                                    source_keypoints=kps,
+        #                                    target_keypoints=target_keypoints)
         boxes, _   = BaseLoader.retina_prediction(image)
         return boxes, image, kps
 
