@@ -15,13 +15,14 @@ from scipy import sparse
 from unsupervised_methods.methods import POS_WANG
 from unsupervised_methods import utils
 import math
-from multiprocessing import Pool, Process, Value, Array, Manager
+from multiprocessing import Pool, Process, Value, Array, Manager, Event
 from retinaface import RetinaFace
 import cv2
 import numpy as np
 import pandas as pd
 from torch.utils.data import Dataset
 from tqdm import tqdm
+import time
 
 def low_pass_filter(prev_kps, next_kps, alpha=1.0):
     return alpha * next_kps + (1.0 - alpha) * prev_kps
@@ -514,17 +515,31 @@ class BaseLoader(Dataset):
             count += 1
         return input_path_name_list, label_path_name_list
 
-    def multi_process_manager(self, data_dirs, config_preprocess, multi_process_quota=1, RAW_MODE=False):
+# from multiprocessing import Process, Manager, Event
+    def time_monitoring_process(self, time_threshold, stop_event):
+        start_time = time.time()
+        while not stop_event.is_set():
+            if time.time() - start_time > time_threshold:
+                print("Time threshold reached. Signaling processes to stop.")
+                stop_event.set()
+            time.sleep(1)  # Sleep for a second before checking again
+
+    # import time
+# from multiprocessing import Process, Manager
+
+    def multi_process_manager(self, data_dirs, config_preprocess, multi_process_quota=1, RAW_MODE=False, time_threshold=600):
         """Allocate dataset preprocessing across multiple processes.
 
         Args:
             data_dirs(List[str]): a list of video_files.
             config_preprocess(Dict): a dictionary of preprocessing configurations
             multi_process_quota(Int): max number of sub-processes to spawn for multiprocessing
+            time_threshold(Int): threshold in seconds for process execution time
         Returns:
             file_list_dict(Dict): Dictionary containing information regarding processed data ( path names)
         """
         print('Preprocessing dataset...')
+        start_time = time.time()
         file_num = len(data_dirs)
         choose_range = range(0, file_num)
         pbar = tqdm(list(choose_range))
@@ -539,6 +554,12 @@ class BaseLoader(Dataset):
         for i in choose_range:
             process_flag = True
             while process_flag:  # ensure that every i creates a process
+                if time.time() - start_time > time_threshold:
+                    print("Time threshold reached. Terminating all processes.")
+                    for p_ in p_list:
+                        p_.terminate()  # Terminate all running processes
+                    return file_list_dict
+                
                 if running_num < multi_process_quota:  # in case of too many processes
                     # send data to be preprocessing task
                     p = Process(target=self.preprocess_dataset_subprocess, 
@@ -560,6 +581,9 @@ class BaseLoader(Dataset):
         pbar.close()
 
         return file_list_dict
+
+
+
 
     def build_file_list(self, file_list_dict):
         """Build a list of files used by the dataloader for the data split. Eg. list of files used for 
