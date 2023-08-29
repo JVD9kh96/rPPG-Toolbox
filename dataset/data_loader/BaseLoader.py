@@ -398,7 +398,7 @@ class BaseLoader(Dataset):
                     face_region = face_region[0][0] if len(face_region)>1 else face_region[0]
                         # print(face_region)
                     frames[i] = frame
-                    assert len(face_region) == 4, "face zone should have 4 elements"
+                    assert len(face_region) == 4, "face zone should have 4 elements {}".format(face_region)
                     face_region = list(map(int, face_region))
                     face_region_all.append(face_region)
                     kps_all.append(prev_kps)
