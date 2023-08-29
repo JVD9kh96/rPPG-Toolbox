@@ -409,7 +409,7 @@ class BaseLoader(Dataset):
             # face_region_median = np.median(face_region_all, axis=0).astype('int')
         kps_all = np.array(kps_all[1:])
         assert kps_all.shape[0] == face_region_all.shape[0]
-        meta = np.concatenate((face_region_all, kps_all.reshape((-1, 10))))
+        meta = np.concatenate((face_region_all, kps_all.reshape((-1, 10))), axis=-1)
         if use_median_box:
             # Generate a median bounding box based on all detected face regions
             face_region_median = np.median(face_region_all, axis=0).astype('int')
