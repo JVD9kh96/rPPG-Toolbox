@@ -322,6 +322,7 @@ class BaseLoader(Dataset):
             face_box_coor = face_zone[face_box_coor[2]]
             print("Warning: More than one faces are detected(Only cropping the biggest one.)")
         else:
+            print('face_zone\n', face_zone, '\n')
             face_box_coor = face_zone[0]
             kps           = kps[0]
         if use_larger_box:
@@ -400,7 +401,7 @@ class BaseLoader(Dataset):
                     face_region_all.append(face_region)
                     kps_all.append(prev_kps)
                     # print(face_region)
-            print('\n\nface_region', face_region_all, '\nface_regio\n')
+            print('\n\nface_region', face_region_all, '\nface_region\n')
             face_region_all = np.asarray(face_region_all, dtype='int')
             # print(face_region_all.shape)
             # face_region_median = np.median(face_region_all, axis=0).astype('int')
