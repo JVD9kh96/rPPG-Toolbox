@@ -400,6 +400,7 @@ class BaseLoader(Dataset):
                     face_region_all.append(face_region)
                     kps_all.append(prev_kps)
                     # print(face_region)
+            print('\n\nface_region', face_region_all, '\nface_regio\n')
             face_region_all = np.asarray(face_region_all, dtype='int')
             # print(face_region_all.shape)
             # face_region_median = np.median(face_region_all, axis=0).astype('int')
