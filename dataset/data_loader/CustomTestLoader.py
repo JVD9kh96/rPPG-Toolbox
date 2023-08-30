@@ -67,7 +67,7 @@ class CustomTestLoader(BaseLoader):
         VidObj.set(cv2.CAP_PROP_POS_MSEC, 0)
         success, frame = VidObj.read()
         h, w = frame.shape[0:2]
-        while max(h, w)>150:
+        while max(h, w)>250:
             h = h // 2
             w = w //2
         frames = list()
