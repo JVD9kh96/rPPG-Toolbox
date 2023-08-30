@@ -527,7 +527,7 @@ class BaseLoader(Dataset):
     # import time
 # from multiprocessing import Process, Manager
 
-    def multi_process_manager(self, data_dirs, config_preprocess, multi_process_quota=1, RAW_MODE=False, time_threshold=600):
+    def multi_process_manager(self, data_dirs, config_preprocess, multi_process_quota=1, RAW_MODE=False, time_threshold=36000):
         """Allocate dataset preprocessing across multiple processes.
 
         Args:
